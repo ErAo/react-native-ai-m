@@ -6,9 +6,7 @@ import {
     TouchableOpacity,
     View,
     Text,
-    Button,
-    Card,
-    PermissionsAndroid
+    TextInput,
 } from 'react-native';
 import {
     Colors,
@@ -58,13 +56,15 @@ export default class ScanBleManger extends ManagerBlend {
                 </View>
                 {Object.keys(conectables).map((key) => {
                 return <View key={key} style={styles.cardDevice}>
-                            <View style={styles.details}>
-                                <Text style={styles.highlight}>
+                            <View>
+                                <Text style={styles.titleCard}>
                                     {conectables[key].name}
                                 </Text>
-                                <Text style={styles.titleCard}>
-                                    ID: {conectables[key].id}
-                                </Text>
+                                <View style={styles.details}>
+                                    <Text >
+                                        ID: {conectables[key].id}
+                                    </Text>
+                                </View>
                             </View>
                             <TouchableOpacity onPress={()=> this.connectDevice(conectables[key].name)}>
                                 <View style={[styles.container, styles.horizontal, styles.btnCard]}>
@@ -78,52 +78,11 @@ export default class ScanBleManger extends ManagerBlend {
                             </TouchableOpacity>
                         </View>
                 })}
-                <View style={styles.cardDevice}>
-                    <View>
-                        <Text  style={styles.titleCard}>
-                            Richar
-                        </Text>
-                        <View style={styles.details}>
-                            <Text  >
-                                ID: 4565424524534s
-                            </Text>
-                        </View>
-                    </View>
-                    <TouchableOpacity>
-                        <View style={[styles.container, styles.horizontal, styles.btnCard]}>
-                            <Text style={styles.highlight, {color: '#fff'}}>
-                            Conectar
-                            </Text>     
-                            <ActivityIndicator size="small" color="#fff" />
-                        </View>
-                    </TouchableOpacity>
-                </View>
                 <View>
                     <Text style={styles.sectionTitle}>Servicios y Caracteristicas</Text>
                 </View>
-
-                <View style={styles.cardDevice}>
-                    <View>
-                        <Text  style={styles.titleCard}>
-                            Richar
-                        </Text>
-                        <View style={styles.details}>
-                            <Text style={styles.itemServices}>
-                                ID: 4565424524534s
-                            </Text>
-                            <Text style={styles.itemServices}>
-                                ID: 4565424524534s
-                            </Text>
-                            <Text style={styles.itemServices}>
-                                ID: 4565424524534s
-                            </Text>
-                            <Text style={styles.itemServices}>
-                                ID: 4565424524534s
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-            </>
+                {console.log(this.state.currentServices)}
+            </> 
         );
     }
 }
@@ -183,6 +142,10 @@ const styles = StyleSheet.create({
     sectionContainer: {
         marginTop: 32,
         paddingHorizontal: 24,
+    },
+    input : {
+        width: '100%',
+        height : 300
     },
     cardDevice : {
         marginBottom: 15,

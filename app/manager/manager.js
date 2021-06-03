@@ -11,12 +11,14 @@ export default class ManagerBlend extends Component {
             connectState : "Conectar", 
             values: {}, 
             conectables : {}, 
-            alert : ''
+            alert : '',
+            currentServices : []
         }
         this.sensors = {value: {}}
         this.timeWait;
         this.device;
         this.scanWait;
+        this.connectInterval;
         this.scanDevices = this.scanDevices.bind(this);
     }
     async requestLocationPermission() {
@@ -41,6 +43,7 @@ export default class ManagerBlend extends Component {
         }
     }
 
+
     getServicesAndCharacteristics(device) {
         return new Promise((resolve, reject) => {
             device.services().then(services => {
@@ -60,60 +63,69 @@ export default class ManagerBlend extends Component {
                                     characteristic.isWritableWithoutResponse
                             )
                             if (!dialog ) {
+                                this.setState({currentServices : characteristics})
+                                console.log(this.state.currentServices)
                                 reject('No writable characteristic')
                             }
+                            this.setState({currentServices : characteristics})
                             resolve(dialog)
                         }
                     })
                 })
             })
-        })
+        }) 
     }
 
     
     connectDevice(deviceName) {
         this.manager.stopDeviceScan();
         this.setState({text:"Buscar Dispositivos"})
-        let item = this.state.conectables[deviceName]
+        let item = this.state.conectables[deviceName];
         let device = item.obj;
         const btnConectText = (e)=> item.text = e;
         //console.log(device)
-        if(item.text == 'Desconectar'){
-            this.manager.cancelDeviceConnection(device.id).then(response => {
-                this.setState({alert : `Dispositivo desconectado`})
-            });
-            btnConectText('Conectar')
-        }else {
-            const serviceUUIDs = device.serviceUUIDs[0];
-            btnConectText('Conectando')
-            this.manager.connectToDevice(device.id, {autoConnect:true}).then((estado) => {
-                (async () => {
-                    const services = await estado.discoverAllServicesAndCharacteristics()
-                    const characteristic = await this.getServicesAndCharacteristics(services)
-                    this.setState({alert : 'Buscando los Servicios y Caracteristicas'})
-                    this.setState({alert : `Servicios y Caracteristicas encontradas`})
-                    this.setState({deviceid:estado.id, serviceUUID:serviceUUIDs, characteristicsUUID : characteristic.uuid, device: estado })
-                })();
-                //console.log(device)
-                this.setState({device:estado})
-                return estado.discoverAllServicesAndCharacteristics();
-            }).then((estado) => {
-                this.manager.isDeviceConnected(device.id).then((e)=>{
-                    btnConectText('Desconectar')
-                })
-            }).then((estado) => {
-                this.manager.isDeviceConnected(device.id).then((e)=>{
-                    btnConectText('Desconectar')
-                })
-            }, (error) => {
+        clearTimeout(this.connectInterval);
+        this.manager.isDeviceConnected(device.id).then((is_connect)=>{
+            clearTimeout(this.connectInterval);
+            if(is_connect) {
                 this.manager.cancelDeviceConnection(device.id).then(response => {
-                    btnConectText('Conectar')
+                    this.setState({alert : `Dispositivo desconectado`})
                 });
                 btnConectText('Conectar')
-                console.log("Connection error "+ JSON.stringify(error))
-            })
-        }
-        
+            }else {
+                const serviceUUIDs = device.serviceUUIDs[0];
+                btnConectText('Conectando')
+                this.connectInterval = setTimeout(() => {
+                    this.manager.connectToDevice(device.id, {autoConnect:true}).then((estado) => {
+                        (async () => {
+                            const services = await estado.discoverAllServicesAndCharacteristics()
+                            const characteristic = await this.getServicesAndCharacteristics(services)
+                            this.setState({alert : 'Buscando los Servicios y Caracteristicas'})
+                            this.setState({alert : `Servicios y Caracteristicas encontradas`})
+                            this.setState({deviceid:estado.id, serviceUUID:serviceUUIDs, characteristicsUUID : characteristic.uuid, device: estado })
+                        })();
+                        //console.log(device)
+                        this.setState({device:estado})
+                        return estado.discoverAllServicesAndCharacteristics();
+                    }).then((estado) => {
+                        this.manager.isDeviceConnected(device.id).then((e)=>{
+                            btnConectText('Desconectar')
+                        })
+                    }).then((estado) => {
+                        this.manager.isDeviceConnected(device.id).then((e)=>{
+                            btnConectText('Desconectar')
+                        })
+                    }, (error) => {
+                        this.manager.cancelDeviceConnection(device.id).then(response => {
+                            btnConectText('Conectar')
+                        });
+                        btnConectText('Conectar')
+                        console.log("Connection error "+ JSON.stringify(error))
+                    })
+                    
+                }, 1500);
+            }
+        })
     }
 
     scanDevices() {
@@ -141,30 +153,28 @@ export default class ManagerBlend extends Component {
         
                     if( device.name !== null) 
                     {
-                        let newDevice = {
-                            name : device.name, 
-                            id : device.id,
-                            obj : device,
-                            text: 'Conectar'
-                        };
-
-                        this.manager.isDeviceConnected(device.id).then((e)=>{
-                            newDevice = {
+                        const whatIDo = (e)=>{
+                            let newDevice = {
                                 name : device.name, 
                                 id : device.id,
                                 obj : device,
-                                text: 'Desconectar'
+                                text: e
                             };
-                            console.log(e)
+                            
                             conectables[device.name] = newDevice
+    
+                            this.setState({
+                                conectables : conectables
+                            })
+                        }
+                        this.manager.isDeviceConnected(device.id).then((is_connect)=>{
+                            if(is_connect) {
+                                whatIDo('Desconectar')
+                            }else {
+                                whatIDo('Conectar')
+                            }
                         })
                         
-
-                        conectables[device.name] = newDevice
-
-                        this.setState({
-                            conectables : conectables
-                        })
                     }
                 });
             }, 1000);
